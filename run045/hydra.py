@@ -8,10 +8,9 @@ class Hydra(readhdf5, feature):
     def __init__(self, rawdata_path):
         self.rawdata_path = rawdata_path
 
+    def open_raw(self):
         readhdf5.ReadHDF5(self.rawdata_path)
         readhdf5.OpenHDF5()
-
-    def open_raw(self):
         pulse = readhdf5.pulse
         noise = readhdf5.noise
         vres  = readhdf5.vres
