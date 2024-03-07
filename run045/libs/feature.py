@@ -2,17 +2,22 @@ import numpy as np
 import h5py
 
 class Feature:
-    def calc_tau(self, readhdf5, low_lvl, high_lvl):
+    def calc_baseline(self, ):
+        pass
+
+    def calc_pulseheight(self, ):
+        pass
+
+    def calc_tau(self, pulse, noise, time, low_lvl, high_lvl):
         tau = []
         pulseheight = []
         baseline = []
 
-        all_eventnum = readhdf5.pulse.shape[0]
+        all_eventnum = pulse.shape[0]
         for eventnum in range(all_eventnum):
-            noise = readhdf5.noise[eventnum] * readhdf5.vres * 1e3
-            pulse = readhdf5.pulse[eventnum] * readhdf5.vres * 1e3
-            time = readhdf5.time * 1e3
-
+            noise = noise[eventnum]
+            pulse = pulse[eventnum]
+            time  = time
 
             bsl = np.mean(noise)
             pmax = np.min(pulse)
