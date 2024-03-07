@@ -2,60 +2,62 @@ import numpy as np
 import h5py
 
 class Feature:
-    def calc_baseline(self, ):
-        pass
-
-    def calc_pulseheight(self, ):
-        pass
-
-    def calc_tau(self, pulse, noise, time, low_lvl, high_lvl):
-        tau = []
-        pulseheight = []
-        baseline = []
-
-        all_eventnum = pulse.shape[0]
-        for eventnum in range(all_eventnum):
-            noise = noise[eventnum]
-            pulse = pulse[eventnum]
-            time  = time
-
+    def calc_baseline(self, noises):
+        bsls = []
+        for i, noise in enumerate(noises):
             bsl = np.mean(noise)
+            bsls.append(bsl)
+        return np.array(bsls)
+
+    def calc_pulseheight(self, pulses, noises):
+        phs = []
+        bsls = self.calc_baseline(noises)
+        for i, pulse in enumerate(pulses):
             pmax = np.min(pulse)
+            ph = bsls[i] - pmax
+            phs.append(ph)
+        return np.array(phs)
+
+    def calc_tau(self, pulses, noises, time, low_lvl, high_lvl):
+        rises = []
+        falls = []
+        bsls = self.calc_baseline(noises)
+        phs  = self.calc_pulseheight(pulses, noises)
+        n_events = pulses.shape[0]
+        sampling_rate = time[1] - time[0]
+
+        for i in range(n_events):
+            pulse = pulses[i]
             pmax_index = np.argmin(pulse)
-            ph = bsl - pmax
-            
 
-            low_line = bsl - low_lvl * ph
-            high_line = bsl - high_lvl * ph
+            low_line  = bsls[i] - low_lvl  * phs[i]
+            high_line = bsls[i] - high_lvl * phs[i]
 
-            one_tau = []
-            for i in range(2):
-                if i == 0:
-                    half_time = time[:pmax_index]
-                    half_pulse = pulse[:pmax_index]
+            half_time1   = time[:pmax_index]
+            half_pulse1  = pulse[:pmax_index]
+            sliced_time1 = half_time1[(half_pulse1<low_line) & (half_pulse1>high_line)]
+
+            half_time2   = time[pmax_index:]
+            half_pulse2  = pulse[pmax_index:]
+            sliced_time2 = half_time2[(half_pulse2<low_line) & (half_pulse2>high_line)]
+
+            if not sliced_time1:
+                rise = sampling_rate
+                if not sliced_time2:
+                    fall = sampling_rate
                 else:
-                    half_time = time[pmax_index:]
-                    half_pulse = pulse[pmax_index:]
-
-                sliced_time = half_time[(half_pulse<low_line) & (half_pulse>high_line)]
-
-                if sliced_time.size < 2:
-                    one_tau.append(time[1]-time[0])
+                    fall = sliced_time2[-1] - sliced_time2[0]
+            else:
+                rise = sliced_time1[-1] - sliced_time1[0]
+                if not sliced_time2:
+                    fall = sampling_rate
                 else:
-                    one_tau.append(sliced_time[-1]-sliced_time[0])
-                
+                    fall = sliced_time2[-1] - sliced_time2[0]
             
-            tau.append(one_tau)
-            pulseheight.append(ph)
-            baseline.append(bsl)
+            rises.append(rise)
+            falls.append(fall)
 
-        tau_array = np.array(tau).reshape([-1,2])
-        rise_array = tau_array[:,0]
-        fall_array = tau_array[:,1]
-        pulseheight_array = np.array(pulseheight)
-        baseline_array = np.array(baseline)
-
-        return rise_array, fall_array, pulseheight_array, baseline_array
+        return np.array(rises), np.array(falls)
 
 
     def save_to_file(self, path, name, data):

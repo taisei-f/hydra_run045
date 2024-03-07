@@ -21,14 +21,16 @@ class Hydra(readhdf5, feature):
     def close_raw(self):
         readhdf5.CloseHDF5()
 
-    def calc_features(self, pulse, noise, time):
-        raw_rise, raw_fall, raw_ph, raw_bsl = feature.calc_tau(
-            pulse,
-            noise,
+    def calc_features(self, pulses, noises, time):
+        raw_rise, raw_fall = feature.calc_tau(
+            pulses,
+            noises,
             time,
             low_lvl=0.2,
             high_lvl=0.8
         )
+        raw_ph  = feature.calc_pulseheight(pulses)
+        raw_bsl = feature.calc_baseline(noises)
         return raw_rise, raw_fall, raw_ph, raw_bsl
 
     def import_features(self, features_path):
